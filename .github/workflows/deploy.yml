@@ -1,0 +1,76 @@
+name: Deploy Express to Yandex Cloud
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: yc-express-server-production
+  cancel-in-progress: false
+
+env:
+  REGISTRY_ID: crp1lku1961752mnu8qb
+  FOLDER_ID: b1ghih3ae5ru0p5c9rdp
+  CONTAINER_NAME: yc-express-server
+  IMAGE_NAME: yc-express-server
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get Yandex Cloud IAM token
+        id: yc-token
+        uses: docker://ghcr.io/yc-actions/yc-iam-token-fed:1.0.0
+        with:
+          yc-sa-id: ${{ secrets.YC_DEPLOY_SA_ID }}
+
+      - name: Login to Yandex Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: cr.yandex
+          username: iam
+          password: ${{ steps.yc-token.outputs.token }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          provenance: false
+          sbom: false
+          outputs: type=image,oci-mediatypes=false,push=true
+          tags: cr.yandex/${{ env.REGISTRY_ID }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+      - name: Deploy Serverless Container
+        uses: yc-actions/yc-sls-container-deploy@v5
+        with:
+          yc-iam-token: ${{ steps.yc-token.outputs.token }}
+          container-name: ${{ env.CONTAINER_NAME }}
+          folder-id: ${{ env.FOLDER_ID }}
+          public: true
+          revision-service-account-id: ${{ secrets.YC_RUNTIME_SA_ID }}
+          revision-cores: 1
+          revision-memory: 512Mb
+          revision-execution-timeout: 30
+          revision-image-url: cr.yandex/${{ env.REGISTRY_ID }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          revision-env: |
+            MONGODB_ALLOWED_HOST=kodaktor.ru
+
+      - name: Check deployed application
+        run: |
+          curl --fail --show-error --silent --retry 5 --retry-delay 3 \
+            "https://bbag2if5tmqahn04nsfb.containers.yandexcloud.net/login/"
