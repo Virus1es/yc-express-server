@@ -28,31 +28,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Debug GitHub OIDC claims
-        shell: bash
-        run: |
-          RESPONSE=$(curl -fsS \
-            -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
-            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=https%3A%2F%2Fgithub.com%2FVirus1es")
-
-          TOKEN=$(echo "$RESPONSE" | jq -r '.value')
-
-          TOKEN="$TOKEN" python3 - <<'PY'
-          import os
-          import json
-          import base64
-
-          payload = os.environ["TOKEN"].split(".")[1]
-          payload += "=" * (-len(payload) % 4)
-
-          claims = json.loads(
-              base64.urlsafe_b64decode(payload)
-          )
-
-          for field in ("iss", "aud", "sub", "repository", "ref"):
-              print(f"{field}: {claims.get(field)}")
-          PY
-
       - name: Get Yandex Cloud IAM token
         id: yc-token
         uses: docker://ghcr.io/yc-actions/yc-iam-token-fed:1.0.0
@@ -86,7 +61,6 @@ jobs:
           yc-iam-token: ${{ steps.yc-token.outputs.token }}
           container-name: ${{ env.CONTAINER_NAME }}
           folder-id: ${{ env.FOLDER_ID }}
-          public: true
           revision-service-account-id: ${{ secrets.YC_RUNTIME_SA_ID }}
           revision-cores: 1
           revision-memory: 512Mb
