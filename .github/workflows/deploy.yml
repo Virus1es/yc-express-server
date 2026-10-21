@@ -1,4 +1,4 @@
-name: Deploy Express to Yandex Cloud
+name: Deploy to Yandex Cloud
 
 on:
   push:
@@ -11,14 +11,14 @@ permissions:
   id-token: write
 
 concurrency:
-  group: yc-express-server-production
+  group: express-week6-production
   cancel-in-progress: false
 
 env:
   REGISTRY_ID: crp1lku1961752mnu8qb
   FOLDER_ID: b1ghih3ae5ru0p5c9rdp
-  CONTAINER_NAME: yc-express-server
-  IMAGE_NAME: yc-express-server
+  CONTAINER_NAME: express-week6
+  IMAGE_NAME: express-week6
 
 jobs:
   deploy:
@@ -44,7 +44,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build and push Docker image
+      - name: Build and push image
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -70,7 +70,7 @@ jobs:
           revision-env: |
             MONGODB_ALLOWED_HOST=kodaktor.ru
 
-      - name: Check deployed application
+      - name: Smoke test
         run: |
           curl --fail --show-error --silent --retry 5 --retry-delay 3 \
             "https://bbag2if5tmqahn04nsfb.containers.yandexcloud.net/login/"
