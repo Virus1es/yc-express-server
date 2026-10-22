@@ -22,7 +22,7 @@ export default function appSrc(
     app.use((req, res, next) => {
         const path = req.path;
 
-        if(path !== '/' && !path.startsWith('/')) {
+        if(path !== '/' && !path.endsWith('/')) {
             return res.redirect(308, path + '/' + req.url.substring(path.length));
         }
 
@@ -155,16 +155,45 @@ export default function appSrc(
         }
 
         try {
-            const response = await fetch(url, {
-                signal: AbortSignal.timeout(5000),
-                redirect: 'manual'
-            });
+            const allowedUrls = new Set([
+                'http://kodaktor.ru/j/unsafe_0ebdb',
+                'https://kodaktor.ru/j/unsafe_0ebdb',
+                'http://web-scriptor.ru/j/unsafe_0ebdb',
+                'https://web-scriptor.ru/j/unsafe_0ebdb'
+            ]);
 
-            if (response.status >= 300 && response.status < 400) {
+            let currentUrl = url;
+            let response;
+
+            for (let i = 0; i < 4; i++) {
+                if(!allowedUrls.has(currentUrl.href)) {
+                    return res.status(400).send('Template URL is not allowed');
+                }
+
+                response = await fetch(currentUrl, {
+                    signal: AbortSignal.timeout(5000),
+                    redirect: 'manual',
+                });
+
+                if(response.status < 300 || response.status >= 400) {
+                    break;
+                }
+
                 const location = response.headers.get('location');
-                console.log('Redirect location:', location);
 
-                return res.status(502).send('Template URL redirects. Check server logs.');
+                if (!location) {
+                    return res.status(502).send('Missing redirect location');
+                }
+
+                currentUrl = new URL(location, currentUrl);
+
+                if (!allowedUrls.has(currentUrl.href)) {
+                    return res.status(502).send('Redirect target is not allowed');
+                }
+
+                if (i === 3) {
+                    return res.status(502).send('Too many redirects');
+                }
             }
 
             if (!response.ok) {
@@ -184,7 +213,6 @@ export default function appSrc(
 
             return res.type('html').send(html);
         } catch (error) {
-            console.error('Render error: ', error);
             return res.status(502).send('Render failed');
         }
     })
@@ -226,18 +254,18 @@ export default function appSrc(
     const wordpressRoutes = {
         'wp/v2': {
             namespace: 'wp/v2',
-            method: ['GET'],
-            endpoint: [{ method: 'GET', args: {} }],
+            methods: ['GET'],
+            endpoints: [{ method: 'GET', args: {} }],
         },
-        'wp/v2/post': {
+        'wp/v2/posts': {
             namespace: 'wp/v2',
-            method: ['GET'],
-            endpoint: [{ method: 'GET', args: {} }],
+            methods: ['GET'],
+            endpoints: [{ method: 'GET', args: {} }],
         },
-        'wp/v2/post/(?P<id>[\\d]+)': {
+        'wp/v2/posts/(?P<id>[\\d]+)': {
             namespace: 'wp/v2',
-            method: ['GET'],
-            endpoint: [{ method: 'GET', args: {} }],
+            methods: ['GET'],
+            endpoints: [{ method: 'GET', args: {} }],
         }
     }
 
@@ -278,7 +306,7 @@ export default function appSrc(
 
     app.get('/wordpress/wp-json/wp/v2/', (req, res) => {
         res.json({
-            namespaces: 'wp/v2',
+            namespace: 'wp/v2',
             routes: wordpressRoutes,
         });
     });
