@@ -187,6 +187,123 @@ export default function appSrc(
         }
     })
 
+    const wordpressLogin = 'troan';
+
+    const wordpressPost = {
+        id: 1,
+        date: '2026-10-22T12:00:00',
+        date_gmt: '2026-10-22T09:00:00',
+        modified: '2026-10-22T12:00:00',
+        modified_gmt: '2026-10-22T09:00:00',
+        slug: 'troan',
+        status: 'publish',
+        type: 'post',
+        link: 'https://bbag2if5tmqahn04nsfb.containers.yandexcloud.net/wordpress/',
+        title: {
+            rendered: wordpressLogin,
+        },
+        content: {
+            rendered: '<p>Первая запись</p>',
+            protected: false,
+        },
+        excerpt: {
+            rendered: '<p>Первая запись</p>',
+            protected: false,
+        },
+        author: 1,
+        featured_media: 0,
+        comment_status: 'open',
+        ping_status: 'open',
+        sticky: false,
+        template: '',
+        format: 'standard',
+        categories: [1],
+        tags: []
+    };
+
+    const wordpressApiBase = '/wordpress/wp-json/wp/v2';
+
+    const wordpressRoutes = {
+        [wordpressApiBase]: {
+            namespace: 'wp/v2',
+            method: ['GET'],
+            endpoint: [{ method: 'GET', args: {} }],
+        },
+        [`${wordpressApiBase}/post`]: {
+            namespace: 'wp/v2',
+            method: ['GET'],
+            endpoint: [{ method: 'GET', args: {} }],
+        },
+        [`${wordpressApiBase}/post/(?P<id>[\\d]+)`]: {
+            namespace: 'wp/v2',
+            method: ['GET'],
+            endpoint: [{ method: 'GET', args: {} }],
+        }
+    }
+
+    app.get('/wordpress/', (req, res) => {
+        res.type('html').send(`
+            <!DOCTYPE html>
+            <html lang="ru">
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1">
+                    <title>${wordpressLogin}</title>
+                </head>
+                <body>
+                    <header>
+                        <h1>${wordpressLogin}</h1>
+                    </header>
+                    <main>
+                        <article>
+                            <h2>${wordpressPost.title.rendered}</h2>
+                            ${wordpressPost.content.rendered}
+                        </article>
+                    </main>
+                </body>
+            </html>
+        `);
+    });
+
+    app.get('/wordpress/wp-json/', (req, res) => {
+        res.json({
+            name: wordpressLogin,
+            description: '',
+            url: `${req.protocol}://${req.get('host')}/wordpress/`,
+            namespaces: ['wp/v2'],
+            authentication: {},
+            routes: wordpressRoutes,
+        });
+    });
+
+    app.get('/wordpress/wp-json/wp/v2/', (req, res) => {
+        res.json({
+            namespaces: ['wp/v2'],
+            routes: wordpressRoutes,
+        });
+    });
+
+    app.get('/wordpress/wp-json/wp/v2/posts/', (req, res) => {
+        res.set({
+            'X-WP-Total': '1',
+            'X-WP-TotalPages': '1',
+        });
+
+        res.json([wordpressPost]);
+    });
+
+    app.get('/wordpress/wp-json/wp/v2/posts/:id/', (req, res) => {
+        if (req.params.id !== '1') {
+            return res.status(404).json({
+                code: 'rest_post_invalid_id',
+                message: 'Invalid post ID.',
+                data: { status: 404 }
+            });
+        }
+
+        res.json(wordpressPost);
+    });
+
     app.all('/req/', (req, res) => {
         const addr = req.method === 'POST'
             ? req.body?.addr
