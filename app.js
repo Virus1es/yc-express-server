@@ -223,20 +223,18 @@ export default function appSrc(
         tags: []
     };
 
-    const wordpressApiBase = '/wordpress/wp-json/wp/v2';
-
     const wordpressRoutes = {
-        [wordpressApiBase]: {
+        'wp/v2': {
             namespace: 'wp/v2',
             method: ['GET'],
             endpoint: [{ method: 'GET', args: {} }],
         },
-        [`${wordpressApiBase}/post`]: {
+        'wp/v2/post': {
             namespace: 'wp/v2',
             method: ['GET'],
             endpoint: [{ method: 'GET', args: {} }],
         },
-        [`${wordpressApiBase}/post/(?P<id>[\\d]+)`]: {
+        'wp/v2/post/(?P<id>[\\d]+)': {
             namespace: 'wp/v2',
             method: ['GET'],
             endpoint: [{ method: 'GET', args: {} }],
@@ -280,7 +278,7 @@ export default function appSrc(
 
     app.get('/wordpress/wp-json/wp/v2/', (req, res) => {
         res.json({
-            namespaces: ['wp/v2'],
+            namespaces: 'wp/v2',
             routes: wordpressRoutes,
         });
     });
