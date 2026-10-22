@@ -19,7 +19,7 @@ export default function appSrc(
         next();
     });
 
-    app.use((err, req, res, next) => {
+    app.use((req, res, next) => {
         const path = req.path;
 
         if(path !== '/' && !path.startsWith('/')) {
