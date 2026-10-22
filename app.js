@@ -141,8 +141,10 @@ export default function appSrc(
             return res.status(400).send('Invalid URL');
         }
 
+        const allowedHosts = ['kodaktor.ru', 'web-scriptor.ru'];
+
         if (
-            url.hostname !== 'web-scriptor.ru' ||
+            !allowedHosts.includes(url.hostname) ||
             url.pathname !== '/j/unsafe_0ebdb' ||
             !['http:', 'https:'].includes(url.protocol) ||
             url.port ||
