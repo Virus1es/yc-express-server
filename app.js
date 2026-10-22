@@ -1,4 +1,12 @@
-export default function appSrc(express, bodyParser, createReadStream, crypto, http, MongoClient) {
+export default function appSrc(
+    express,
+    bodyParser,
+    createReadStream,
+    crypto,
+    http,
+    MongoClient,
+    pug
+) {
     const app = express();
 
     app.use((req, res, next) => {
@@ -22,6 +30,8 @@ export default function appSrc(express, bodyParser, createReadStream, crypto, ht
     })
 
     app.use(bodyParser.urlencoded({ extended: false }));
+
+    app.use(express.json({ limit: '10kb' }));
 
     app.options(/.*/, (req, res) => {
         res.sendStatus(204);
@@ -107,6 +117,75 @@ export default function appSrc(express, bodyParser, createReadStream, crypto, ht
             }
         }
     });
+
+    app.post('/render/', async (req, res) => {
+        const { addr } = req.query;
+        const { random2, random3 } = req.body ?? {};
+
+        if(typeof addr !== 'string') {
+            return res.status(400).send('Missing addr');
+        }
+
+        if(
+            !['string', 'number'].includes(typeof random2) ||
+            !['string', 'number'].includes(typeof random3)
+        ) {
+            return res.status(400).send('Missing invalid JSON body');
+        }
+
+        let url;
+
+        try {
+            url = new URL(addr);
+        } catch {
+            return res.status(400).send('Invalid URL');
+        }
+
+        if (
+            url.hostname !== 'web-scriptor.ru' ||
+            url.pathname !== '/j/unsafe_0ebdb' ||
+            !['http:', 'https:'].includes(url.protocol) ||
+            url.port ||
+            url.username ||
+            url.password
+        ) {
+            return res.status(400).send('Template URL is not allowed');
+        }
+
+        try {
+            const response = await fetch(url, {
+                signal: AbortSignal.timeout(5000),
+                redirect: 'manual'
+            });
+
+            if (response.status >= 300 && response.status < 400) {
+                const location = response.headers.get('location');
+                console.log('Redirect location:', location);
+
+                return res.status(502).send('Template URL redirects. Check server logs.');
+            }
+
+            if (!response.ok) {
+                return res.status(502).send('Template fetch failed');
+            }
+
+            const template = await response.text();
+
+            if (template.length > 20_000) {
+                return res.status(413).send('Template too large');
+            }
+
+            const html = pug.render(template, {
+                random2,
+                random3
+            });
+
+            return res.type('html').send(html);
+        } catch (error) {
+            console.error('Render error: ', error);
+            return res.status(502).send('Render failed');
+        }
+    })
 
     app.all('/req/', (req, res) => {
         const addr = req.method === 'POST'

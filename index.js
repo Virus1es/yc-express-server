@@ -4,6 +4,7 @@ import { createReadStream } from 'node:fs';
 import crypto from "node:crypto";
 import http from "node:http";
 import mongodb from "mongodb";
+import pug from 'pug';
 
 import appSrc from "./app.js";
 
@@ -15,7 +16,8 @@ const app = appSrc(
     createReadStream,
     crypto,
     http,
-    MongoClient
+    MongoClient,
+    pug
 );
 
 app.listen(process.env.PORT || 3000);
