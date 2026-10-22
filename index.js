@@ -5,6 +5,7 @@ import crypto from "node:crypto";
 import http from "node:http";
 import mongodb from "mongodb";
 import pug from 'pug';
+import { chromium } from 'playwright';
 
 import appSrc from "./app.js";
 
@@ -17,7 +18,8 @@ const app = appSrc(
     crypto,
     http,
     MongoClient,
-    pug
+    pug,
+    chromium
 );
 
 app.listen(process.env.PORT || 3000);

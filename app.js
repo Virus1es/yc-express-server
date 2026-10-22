@@ -5,7 +5,8 @@ export default function appSrc(
     crypto,
     http,
     MongoClient,
-    pug
+    pug,
+    chromium
 ) {
     const app = express();
 
@@ -344,6 +345,69 @@ export default function appSrc(
         }
 
         res.json(wordpressPost);
+    });
+
+    app.get('/test/', async (req, res) => {
+        const targetUrl = req.query.URL;
+
+        if (typeof targetUrl !== 'string') {
+            return res.status(400).type('text/plain').send('Missing URL');
+        }
+
+        let url;
+
+        try {
+            url = new URL(targetUrl);
+        } catch {
+            return res.status(400).type('text/plain').send('Invalid URL');
+        }
+
+        const allowedHosts = ['kodaktor.ru', 'web-scriptor.ru'];
+
+        if (
+            url.protocol !== 'https:' ||
+            !allowedHosts.includes(url.hostname) ||
+            url.port ||
+            url.username ||
+            url.password ||
+            !url.pathname.startsWith('/g/')
+        ) {
+            return res.status(400).type('text/plain').send('URL is not allowed');
+        }
+
+        let browser;
+
+        try {
+            browser = await chromium.launch({
+                headless: true,
+                args: ['--no-sandbox'],
+            });
+
+            const page = await browser.newPage();
+
+            await page.goto(url.href, {
+                waitUntil: 'domcontentloaded',
+                timeout: 15000
+            });
+
+            await page.locator('#bt').click({
+                timeout: 10000,
+            });
+
+            const result = await page.locator('#inp').inputValue();
+
+            if (!Number.isFinite(Number(result)) || result.trim() === '') {
+                return res.status(502).type('text/plain').send('Invalid input value');
+            }
+
+            return res.status(200).type('text/plain').send(result.trim());
+        } catch (error) {
+            return res.status(502).type('text/plain').send('Browser automation failed');
+        } finally {
+            if (browser) {
+                await browser.close().catch(() => {});
+            }
+        }
     });
 
     app.all('/req/', (req, res) => {

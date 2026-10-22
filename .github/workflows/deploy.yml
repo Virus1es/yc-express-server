@@ -63,8 +63,8 @@ jobs:
           folder-id: ${{ env.FOLDER_ID }}
           revision-service-account-id: ${{ secrets.YC_RUNTIME_SA_ID }}
           revision-cores: 1
-          revision-memory: 512Mb
-          revision-execution-timeout: 30
+          revision-memory: 1Gb
+          revision-execution-timeout: 60
           revision-image-url: cr.yandex/${{ env.REGISTRY_ID }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
           revision-env: |
             MONGODB_ALLOWED_HOST=kodaktor.ru
