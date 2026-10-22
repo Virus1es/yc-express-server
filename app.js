@@ -362,15 +362,19 @@ export default function appSrc(
             return res.status(400).type('text/plain').send('Invalid URL');
         }
 
-        const allowedHosts = ['kodaktor.ru', 'web-scriptor.ru'];
+        const allowedHosts = new Set([
+            'kodaktor.ru',
+            'web-scriptor.ru',
+            'node-server.ru',
+            'node-server.online'
+        ]);
 
         if (
-            url.protocol !== 'https:' ||
-            !allowedHosts.includes(url.hostname) ||
+            !['http:', 'https:'].includes(url.protocol) ||
+            !allowedHosts.has(url.hostname) ||
             url.port ||
             url.username ||
-            url.password ||
-            !url.pathname.startsWith('/g/')
+            url.password
         ) {
             return res.status(400).type('text/plain').send('URL is not allowed');
         }
