@@ -13,8 +13,14 @@ export default function appSrc(
         res.set({
             'Access-Control-Allow-Origin': '*',
             'Access-Control-Allow-Methods': 'GET,POST,PUT,PATCH,OPTIONS,DELETE',
-            'Access-Control-Allow-Headers': req.headers['access-control-request-headers'] || 'Content-Type, Authorization'
+            'Access-Control-Allow-Headers':
+                req.headers['access-control-request-headers'] ||
+                'Content-Type, Accept, Ngrok-Skip-Browser-Warning, Authorization'
         });
+
+        if (req.method === 'OPTIONS') {
+            return res.sendStatus(204);
+        }
 
         next();
     });
@@ -22,12 +28,20 @@ export default function appSrc(
     app.use((req, res, next) => {
         const path = req.path;
 
-        if(path !== '/' && !path.endsWith('/')) {
-            return res.redirect(308, path + '/' + req.url.substring(path.length));
+        if (
+            path !== '/' &&
+            !path.endsWith('/') &&
+            path !== '/wordpress' &&
+            (req.method === 'GET' || req.method === 'HEAD')
+        ) {
+            return res.redirect(
+                308,
+                path + '/' + req.url.substring(path.length)
+            );
         }
 
         next();
-    })
+    });
 
     app.use(bodyParser.urlencoded({ extended: false }));
 
@@ -364,10 +378,6 @@ export default function appSrc(
         } catch {
             res.status(400).type('text/plain').send('Invalid URL');
         }
-    });
-
-    app.all(/.*/, (req, res) => {
-        res.type('text/plain').send('troan');
     });
 
     return app;
